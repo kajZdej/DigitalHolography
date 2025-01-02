@@ -51,8 +51,8 @@ deltaX, deltaY : sensor size
 # um
 Nx = 1000
 Ny = 1000
-z = 90000
-wavelength = 0.520
+z = 5.500
+wavelength = 0.532
 deltaX = 2.0
 deltaY = 2.0
 
@@ -71,8 +71,8 @@ h,w = img.size
 if h != 1000 or w != 1000:
     img = img.resize((1000,1000), PIL.Image.LANCZOS)
 
-img.show()
-
+#img.show()
+img.save('./input/input.png')
 # pytorch provides a function to convert PIL images to tensors.
 pil2tensor = transforms.ToTensor()
 tensor2pil = transforms.ToPILImage()
@@ -138,6 +138,7 @@ phase = propagator(Nx,Ny,z,wavelength,deltaX,deltaY)
 eta = np.fft.ifft2(np.fft.fft2(g)*np.fft.fftshift(np.conj(phase)))
 plt.figure(figsize=(20,15))
 plt.imshow(np.squeeze(np.abs(eta)), cmap='gray')
+
 
 
 new_holo = ifft2dc(np.fft.fft2(eta)*np.fft.fftshift(phase))
