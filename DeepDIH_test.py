@@ -18,6 +18,7 @@ from torch import optim
 from torch.autograd import Variable
 import torch.nn.functional as F
 
+
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 TORCH_CUDA_ARCH_LIST="8.6"
@@ -61,7 +62,7 @@ deltaY = 2.0
 '''
 
 '''
-img = Image.open('./samples/90mm.tif')
+img = Image.open('./samples/TS-20220310163413358.tif')
 img = ImageOps.grayscale(img)
 
 h,w = img.size
@@ -221,42 +222,41 @@ class RECLoss(nn.Module):
         imag_part = imag_part.unsqueeze(3)
         return torch.cat((real_part, imag_part), 3)
 
-    def forward(self,x,y):
+    def forward(self, x, y):
         batch_size = x.size()[0]
         
         x = x.squeeze(2)
         y = y.squeeze(2)
-        x = x.permute([0,2,3,1])
-        y = y.permute([0,2,3,1])
+        x = x.permute([0, 2, 3, 1])
+        y = y.permute([0, 2, 3, 1])
         
-        cEs = self.batch_fftshift2d(torch.fft(x,3,normalized=True))
-        cEsp = self.complex_mult(cEs,self.prop)
+        cEs = self.batch_fftshift2d(torch.fft.fftn(x, dim=(1, 2, 3), norm='ortho'))
+        cEsp = self.complex_mult(cEs, self.prop)
         
-        # forward propogate
-        # reconstrut_freq = torch.log(torch.abs(self.batch_fftshift2d(torch.fft(x,3,normalized=True)) )+1e-5)
+        # forward propagate
         reconstrut_freq = cEsp
-        reconstrut_freq=(reconstrut_freq-torch.min(reconstrut_freq))/(torch.max(reconstrut_freq)-torch.min(reconstrut_freq))
+        reconstrut_freq_abs = torch.abs(reconstrut_freq)
+        reconstrut_freq_abs = (reconstrut_freq_abs - torch.min(reconstrut_freq_abs)) / (torch.max(reconstrut_freq_abs) - torch.min(reconstrut_freq_abs))
         
-        capture_freq =  torch.log( torch.abs(self.batch_fftshift2d(torch.fft(y,3,normalized=True) ))+1e-5)
-        capture_freq=(capture_freq-torch.min(capture_freq))/(torch.max(capture_freq)-torch.min(capture_freq))
+        capture_freq = torch.log(torch.abs(self.batch_fftshift2d(torch.fft.fftn(y, dim=(1, 2, 3), norm='ortho'))) + 1e-5)
+        capture_freq = (capture_freq - torch.min(capture_freq)) / (torch.max(capture_freq) - torch.min(capture_freq))
         
         h_x = x.size()[1]
         w_x = x.size()[2]
         
-        h_tv_x = torch.pow((reconstrut_freq[:,1:,:,:]-reconstrut_freq[:,:h_x-1,:,:]),2).sum()
-        w_tv_x = torch.pow((reconstrut_freq[:,:,1:,:]-reconstrut_freq[:,:,:w_x-1,:]),2).sum()
+        h_tv_x = torch.pow((reconstrut_freq_abs[:, 1:, :, :] - reconstrut_freq_abs[:, :h_x-1, :, :]), 2).sum()
+        w_tv_x = torch.pow((reconstrut_freq_abs[:, :, 1:, :] - reconstrut_freq_abs[:, :, :w_x-1, :]), 2).sum()
         
-        #print(reconstrut_freq.shape)
-        h_tv_y = torch.pow((capture_freq[:,1:,:,:]-capture_freq[:,:h_x-1,:,:]),2).sum()
-        w_tv_y = torch.pow((capture_freq[:,:,1:,:]-capture_freq[:,:,:w_x-1,:]),2).sum()
+        h_tv_y = torch.pow((capture_freq[:, 1:, :, :] - capture_freq[:, :h_x-1, :, :]), 2).sum()
+        w_tv_y = torch.pow((capture_freq[:, :, 1:, :] - capture_freq[:, :, :w_x-1, :]), 2).sum()
         
-        count_h = self._tensor_size(x[:,1:,:,:])
-        count_w = self._tensor_size(x[:,:,1:,:])
+        count_h = self._tensor_size(x[:, 1:, :, :])
+        count_w = self._tensor_size(x[:, :, 1:, :])
         
-        tv_diff = 2*(h_tv_x/count_h+w_tv_x/count_w)/batch_size - 2*(h_tv_y/count_h+w_tv_y/count_w)/batch_size
-        print(0.01*tv_diff)
-        
-        S = torch.ifft(self.batch_ifftshift2d(cEsp),3,normalized=True)
+        tv_diff = 2 * (h_tv_x / count_h + w_tv_x / count_w) / batch_size - 2 * (h_tv_y / count_h + w_tv_y / count_w) / batch_size
+        print(0.01 * tv_diff)
+
+        S = torch.fft.ifftn(self.batch_ifftshift2d(cEsp), dim=(1, 2, 3), norm='ortho')
         Se = S[:,:,:,0]
         
         mse = torch.mean(torch.abs(Se-y[:,:,:,0]))/2-0.01*tv_diff
