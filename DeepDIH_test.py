@@ -64,6 +64,8 @@ deltaY = 2.0
 '''
 img = Image.open('./samples/TS-20220310163413358.tif')
 img = ImageOps.grayscale(img)
+#save input image as png
+img.save('./input/input.png')
 
 h,w = img.size
 if h != 1000 or w != 1000:
@@ -411,7 +413,7 @@ class Net(nn.Module):
 from torchsummary import summary
 criterion_1 = RECLoss()
 model = Net().cuda()
-optimer_1 = optim.Adam(model.parameters(), lr=5e-3)
+optimer_1 = optim.Adam(model.parameters(), lr=1e-2)
 
 
 device = torch.device("cuda")
@@ -442,14 +444,15 @@ for i in range(epoch_1):
         plotout = (plotout - torch.min(plotout))/(torch.max(plotout)-torch.min(plotout))
         plt.figure(figsize=(20,15))
         plt.imshow(tensor2pil(plotout), cmap='gray')
-        plt.show()
+        plt.savefig('./output/{}_amp.png'.format(i+1))
+        #plt.show()
         
         plotout_p = (torch.atan(outtemp[1,:,:]/outtemp[0,:,:])).numpy()
         plotout_p = Phase_unwrapping(plotout_p)
         plotout_p = (plotout_p - np.min(plotout_p))/(np.max(plotout_p)-np.min(plotout_p))
         plt.figure(figsize=(20,15))
         plt.imshow((plotout_p), cmap='gray')
-        plt.show()
+        #plt.show()
         
         
 outtemp = out.cpu().data.squeeze(0).squeeze(1)
@@ -458,7 +461,8 @@ plotout = torch.sqrt(outtemp[0,:,:]**2 + outtemp[1,:,:]**2)
 plotout = (plotout - torch.min(plotout))/(torch.max(plotout)-torch.min(plotout))
 plt.figure(figsize=(30,30))
 plt.imshow(tensor2pil(plotout), cmap='gray')
-plt.show()
+#plt.savefig('./output/{}_amp.png'.format(i+1))
+#plt.show()
 
 
 plotout_p = (torch.atan(outtemp[1,:,:]/outtemp[0,:,:])).numpy()
@@ -466,7 +470,8 @@ plotout_p = Phase_unwrapping(plotout_p)
 plotout_p = (plotout_p - np.min(plotout_p))/(np.max(plotout_p)-np.min(plotout_p))
 plt.figure(figsize=(30,30))
 plt.imshow((plotout_p), cmap='gray')
-plt.show()        
+#plt.savefig('./output/{}_phase.png'.format(i+1))
+#plt.show()        
 
 
 
@@ -480,12 +485,12 @@ torch.__version__
 type(tensor2pil(plotout))
 
 amp =tensor2pil(plotout)
-amp.save("./penalty_1/1_amp.png")
+amp.save("./output/1_amp.png")
 
 
 
 import cv2
-cv2.imwrite("phase.png",plotout_p)
+cv2.imwrite("./output/phase.png",plotout_p)
 
 
 
