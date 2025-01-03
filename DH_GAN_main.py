@@ -1,5 +1,3 @@
-
-
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 TORCH_CUDA_ARCH_LIST="8.6"
@@ -617,7 +615,7 @@ def DIH_v32(image_path, z, mylamda, epoch):
             Temp_amp.append(tensor2pil(plotout))
             
             PSNR_list.append(compare_psnr(ground_truth,np.array(tensor2pil(plotout))/255.))
-            SSIM_list.append(compare_ssim(ground_truth,np.array(tensor2pil(plotout))/255.))
+            SSIM_list.append(compare_ssim(ground_truth, np.array(tensor2pil(plotout))/255., data_range=1.0))
             
             
             plotout_p = outtemp.numpy()
@@ -634,14 +632,14 @@ def DIH_v32(image_path, z, mylamda, epoch):
             plt.imshow(tensor2pil(plotout), cmap='gray')
             plt.axis('off')
             plt.title('i: '+str(i),fontsize=20)
-            plt.show()
+            #plt.show()
             
             
             
             plt.figure(figsize=(10,10))
             plt.imshow((plotout_p), cmap='gray')
             plt.axis('off')
-            plt.show()
+            #plt.show()
             
     # #         print(plotout_p[100,:10])
             # #print(np.min(plotout_p))
@@ -815,7 +813,7 @@ if __name__ == '__main__':
     # DIH_v32('./samples/TS-20220323160155098.tif', z=1800, mylamda=0, epoch=5000)    
 
 
-    # DIH_v32('./samples/TS-20220314121315355.tif', z=1650, mylamda=0, epoch=5000)    
+    # DIH_v32('./samples/TS-20220314121315355.tif', z=1650, mylamda=0, epoch=5000)
 
 
 

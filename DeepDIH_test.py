@@ -25,7 +25,6 @@ TORCH_CUDA_ARCH_LIST="8.6"
 
 
 
-
 print(torch.cuda.is_available())
 print(torch.cuda.device_count())
 print(torch.cuda.current_device())
@@ -59,33 +58,36 @@ deltaY = 2.0 # um
 '''
 
 '''
+#load image
 img = Image.open('./images/vzorec.tif')
-print(img.size)
-print(type(img))
+#print(img.size) 
+#print(type(img))
 img = ImageOps.grayscale(img)
-print(img.size)
-print(type(img))
+#print(img.size)
+#print(type(img))
 #save input image as png
-img.save('./input/input.png')
+img.save('./input/input.png') # save input image as png
 
-h,w = img.size
-if h != 1000 or w != 1000:
+h,w = img.size # get image size
+# resize image to 1000x1000
+if h != 1000 or w != 1000: 
     img = img.resize((1000,1000), PIL.Image.LANCZOS)
 
 #img.show()
-img.save('./input/input.png')
+# img.save('./input/input.png') # save input image as png
 # pytorch provides a function to convert PIL images to tensors.
-pil2tensor = transforms.ToTensor()
-tensor2pil = transforms.ToPILImage()
+pil2tensor = transforms.ToTensor() # save function to convert PIL images to tensors
+tensor2pil = transforms.ToPILImage() # save function to convert tensors to PIL images
 
-tensor_img = pil2tensor(img)
+tensor_img = pil2tensor(img) # convert image to tensor
 
-g = tensor_img.numpy()
-g = np.sqrt(g)
-g = (g-np.min(g))/(np.max(g)-np.min(g))
+g = tensor_img.numpy() # convert tensor to numpy array
+g = np.sqrt(g) # take square root of the image
+g = (g-np.min(g))/(np.max(g)-np.min(g)) # normalize the image
 
-plt.figure(figsize=(20,15))
-plt.imshow(np.squeeze(g), cmap='gray')
+plt.figure(figsize=(20,15)) # set figure size
+print(np.squeeze(g).shape) # print shape of the image
+# plt.imshow(np.squeeze(g), cmap='gray') # plot the image
 
 
 
@@ -95,23 +97,29 @@ plt.imshow(np.squeeze(g), cmap='gray')
 Phase Unwap and fft
 '''
 def unwrap(x):
+    # calculate the phase from the complex number
     y = x % (2 * np.pi)
     return torch.where(y > np.pi, 2*np.pi - y, y)
 
 def fft2dc(x):
+    # return the 2D fourier transform of the input
     return np.fft.fftshift(np.fft.fft2(x))
   
 def ifft2dc(x):
+    # return the 2D inverse fourier transform of the input
     return np.fft.ifft2(np.fft.fftshift(x))
 
 def Phase_unwrapping(in_):
-    f = np.zeros((1000,1000))
-    for ii in range(1000):
-        for jj in range(1000):
-            x = ii - 1000/2
+    # in_ is the input image
+    f = np.zeros((1000,1000)) # create an array of zeros
+    for ii in range(1000): 
+        for jj in range(1000): 
+            x = ii - 1000/2 
             y = jj - 1000/2
             f[ii,jj] = x**2 + y**2
-    a = ifft2dc(fft2dc(np.cos(in_)*ifft2dc(fft2dc(np.sin(in_))*f))/(f+0.000001))
+    # make the output image real
+    a = ifft2dc(fft2dc(np.cos(in_)*ifft2dc(fft2dc(np.sin(in_))*f))/(f+0.000001)) 
+    # make the output image real
     b = ifft2dc(fft2dc(np.sin(in_)*ifft2dc(fft2dc(np.cos(in_))*f))/(f+0.000001))
     out = np.real(a - b)
     return out
@@ -120,37 +128,44 @@ def Phase_unwrapping(in_):
 
 
 def propagator(Nx,Ny,z,wavelength,deltaX,deltaY):
-    k = 1/wavelength
-    x = np.expand_dims(np.arange(np.ceil(-Nx/2),np.ceil(Nx/2),1)*(1/(Nx*deltaX)),axis=0)
-    y = np.expand_dims(np.arange(np.ceil(-Ny/2),np.ceil(Ny/2),1)*(1/(Ny*deltaY)),axis=1)
-    y_new = np.repeat(y,Nx,axis=1)
-    x_new = np.repeat(x,Ny,axis=0)
-    kp = np.sqrt(y_new**2+x_new**2)
-    term=k**2-kp**2
-    term=np.maximum(term,0) 
-    phase = np.exp(1j*2*np.pi*z*np.sqrt(term))
+    # Nx, Ny : hologram size
+    # z : object-sensor distance
+    # wavelength: wavelength of light
+    # deltaX, deltaY : sensor size
+    
+    k = 1/wavelength # wave number
+    x = np.expand_dims(np.arange(np.ceil(-Nx/2),np.ceil(Nx/2),1)*(1/(Nx*deltaX)),axis=0) # create an array of x values
+    y = np.expand_dims(np.arange(np.ceil(-Ny/2),np.ceil(Ny/2),1)*(1/(Ny*deltaY)),axis=1) # create an array of y values
+    y_new = np.repeat(y,Nx,axis=1) # repeat the y values
+    x_new = np.repeat(x,Ny,axis=0) # repeat the x values
+    kp = np.sqrt(y_new**2+x_new**2) # calculate the spatial frequency
+    term=k**2-kp**2 # calculate the term
+    term=np.maximum(term,0) # calculate the maximum term
+    phase = np.exp(1j*2*np.pi*z*np.sqrt(term)) # calculate the phase
     return phase
 
 
 '''
 Back-propogation
 '''
-phase = propagator(Nx,Ny,z,wavelength,deltaX,deltaY)
-eta = np.fft.ifft2(np.fft.fft2(g)*np.fft.fftshift(np.conj(phase)))
-plt.figure(figsize=(20,15))
-plt.imshow(np.squeeze(np.abs(eta)), cmap='gray')
+phase = propagator(Nx,Ny,z,wavelength,deltaX,deltaY) # calculate the phase
+eta = np.fft.ifft2(np.fft.fft2(g)*np.fft.fftshift(np.conj(phase))) # calculate the back-propogation
+plt.figure(figsize=(20,15)) # set figure size
+plt.imshow(np.squeeze(np.abs(eta)), cmap='gray')  # plot the image
+plt.close() # close the plot
 
 
 
-new_holo = ifft2dc(np.fft.fft2(eta)*np.fft.fftshift(phase))
+new_holo = ifft2dc(np.fft.fft2(eta)*np.fft.fftshift(phase)) # calculate the new hologram
 plt.figure(figsize=(20,15))
 plt.imshow(np.squeeze(np.abs(new_holo)), cmap='gray')
+plt.close()
 
-bp = np.squeeze(np.abs(eta))
-bp = bp/(np.max(bp)-np.min(bp)) *255
+bp = np.squeeze(np.abs(eta)) # calculate the back-propogation
+bp = bp/(np.max(bp)-np.min(bp)) *255 # normalize the image
 
 
-cv2.imwrite('./bp.png',bp)
+cv2.imwrite('./bp.png',bp) # save the back-propogation as a png file
 
 # a = np.fft.fftshift(np.conj(phase))
 # b = np.conj(phase)
@@ -169,8 +184,11 @@ cv2.imwrite('./bp.png',bp)
 
 '''
 Define loss function
+
+
 '''
 class RECLoss(nn.Module):
+
     def __init__(self):
         super(RECLoss,self).__init__()
         self.Nx = Nx
@@ -415,7 +433,7 @@ class Net(nn.Module):
 from torchsummary import summary
 criterion_1 = RECLoss()
 model = Net().cuda()
-optimer_1 = optim.Adam(model.parameters(), lr=1e-2)
+optimer_1 = optim.Adam(model.parameters(), lr=1e-3)
 
 
 device = torch.device("cuda")
