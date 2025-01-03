@@ -49,21 +49,22 @@ wavelength: wavelength of light
 deltaX, deltaY : sensor size
 '''
 # um
-Nx = 1000
-Ny = 1000
-z = 5.500
-wavelength = 0.532
-deltaX = 2.0
-deltaY = 2.0
-
-
-
+Nx = 1000 # pixels
+Ny = 1000 # pixels
+z = 1.000 # mm
+wavelength = 0.129 # um
+deltaX = 2.0 # um
+deltaY = 2.0 # um
 
 '''
 
 '''
-img = Image.open('./samples/TS-20220310163413358.tif')
+img = Image.open('./images/vzorec.tif')
+print(img.size)
+print(type(img))
 img = ImageOps.grayscale(img)
+print(img.size)
+print(type(img))
 #save input image as png
 img.save('./input/input.png')
 
