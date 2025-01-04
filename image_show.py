@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tifffile as tiff
+import PIL
 
 def show_image(image_path):
     image = tiff.imread(image_path)
@@ -18,21 +19,21 @@ def show_image(image_path):
     return image
     
 # teke midle 1000 * 1000 pixels
-def take_midle(image_path):
+def take_midle(image_path, size=1000):
     image = tiff.imread(image_path)
+    x, y = image.shape
+    x1 = x//2 - size//2
+    x2 = x//2 + size//2
+    y1 = y//2 - size//2
+    y2 = y//2 + size//2
+    image = image[x1:x2, y1:y2]
     image_max = np.max(image)
     image_min = np.min(image)
     print('Image max:', image_max)
     print('Image min:', image_min)
     image = ((image - image_min) / (image_max - image_min)) * 240
-    # to int
-    image = image.astype(np.uint8)
-    x, y = image.shape
-    x1 = x//2 - 500
-    x2 = x//2 + 500
-    y1 = y//2 - 500
-    y2 = y//2 + 500
-    return image[x1:x2, y1:y2]
+    image = image//1
+    return image
 
 def png_image(image_path):
     image = plt.imread(image_path)
@@ -40,9 +41,7 @@ def png_image(image_path):
     print('Image type:', type(image))
     return image
 
-
-if __name__ == '__main__':
-    path = '/mnt/data/datasets/polen/holografus/Meritve_HOLO_2/patches_test/patch_pair_38.png'
+def pari(path):
     image = png_image(path)
     # take half of image
     x, y = image.shape
@@ -53,13 +52,23 @@ if __name__ == '__main__':
     # save as png
     plt.imsave('images/imageh.png', imageh, cmap='gray')
     plt.imsave('images/imageb.png', imageb, cmap='gray')
+
+def posamezna(path):
+    vzorec = take_midle(path, 250)
+    #print(vzorec)
+    vzorec = vzorec.astype(np.uint16)
+    #save as tif
+    tiff.imwrite('images/vzorec.tif', vzorec)
+    # save as png
+    plt.imsave('images/vzorec.png', vzorec, cmap='gray')
+    print('Image saved as png')
+    
+
+if __name__ == '__main__':
+    path = '/mnt/data/datasets/polen/holografus_improve/Meritve_RED/HOLO/dataset_1/holo_pelod_testni_vzorci_001.tiff'
+    posamezna(path)
     
     
-    # vzorec = take_midle(path)
-    # print(vzorec)
-    # save as tif
-    #tiff.imwrite('images/vzorec.tif', vzorec)
-    #plt.imshow(vzorec, cmap='gray')
-    #plt.savefig('images/vzorec.png')
-    #print('Image saved as png')
+    
+    
     

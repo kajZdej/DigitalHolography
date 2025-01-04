@@ -50,16 +50,17 @@ deltaX, deltaY : sensor size
 # um
 Nx = 1000 # pixels
 Ny = 1000 # pixels
-z = 1.000 # mm
-wavelength = 0.129 # um
-deltaX = 2.0 # um
-deltaY = 2.0 # um
+z = 1.150 # mm
+wavelength = 0.495 # um
+deltaX = 4.8 # um
+deltaY = 4.8 # um
 
 '''
 
 '''
 #load image
-img = Image.open('./images/vzorec.tif')
+img = Image.open('./images/vzorec.tif') # load image
+#take just one chanel of tiff
 #print(img.size) 
 #print(type(img))
 img = ImageOps.grayscale(img)
@@ -69,6 +70,7 @@ img = ImageOps.grayscale(img)
 img.save('./input/input.png') # save input image as png
 
 h,w = img.size # get image size
+
 # resize image to 1000x1000
 if h != 1000 or w != 1000: 
     img = img.resize((1000,1000), PIL.Image.LANCZOS)
@@ -116,7 +118,7 @@ def Phase_unwrapping(in_):
         for jj in range(1000): 
             x = ii - 1000/2 
             y = jj - 1000/2
-            f[ii,jj] = x**2 + y**2
+            f[ii,jj] = x**2 + y**2 # make cilindrical mask (center of the image is 0 and the values increase as we move away from the center)
     # make the output image real
     a = ifft2dc(fft2dc(np.cos(in_)*ifft2dc(fft2dc(np.sin(in_))*f))/(f+0.000001)) 
     # make the output image real
