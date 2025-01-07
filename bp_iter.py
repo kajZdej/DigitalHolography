@@ -64,26 +64,25 @@ def Phase_unwrapping(in_, s=500):
     out = np.real(a - b)
     return out
 def propagator(Nx,Ny,z,wavelength,deltaX,deltaY):
-    k = 1/wavelength
-    x = np.expand_dims(np.arange(np.ceil(-Nx/2),np.ceil(Nx/2),1)*(1/(Nx*deltaX)),axis=0)
-    y = np.expand_dims(np.arange(np.ceil(-Ny/2),np.ceil(Ny/2),1)*(1/(Ny*deltaY)),axis=1)
-    y_new = np.repeat(y,Nx,axis=1)
-    x_new = np.repeat(x,Ny,axis=0)
-    kp = np.sqrt(y_new**2+x_new**2)
-    term=k**2-kp**2
-    term=np.maximum(term,0) 
-    phase = np.exp(1j*2*np.pi*z*np.sqrt(term))
+    k = 2 * np.pi / wavelength
+    fx = np.fft.fftfreq(Nx, deltaX)
+    fy = np.fft.fftfreq(Ny, deltaY)
+    fx, fy = np.meshgrid(fx, fy)
+    kp = np.sqrt(fx**2 + fy**2)
+    term = k**2 - kp**2
+    term = np.maximum(term, 0)
+    phase = np.exp(1j * 2 * np.pi * z * np.sqrt(term))
     return phase
 
-image_size = 500
+image_size = 250
 
 # um
-Nx = 500
-Ny = 500
-z = 12000
-wavelength = 0.532
-deltaX = 4
-deltaY = 4
+Nx = 250
+Ny = 250
+z = 11.2
+wavelength = 0.519
+deltaX = 4.8
+deltaY = 4.8
 
 '''
 Load image
@@ -91,12 +90,17 @@ Load image
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
 
-img = rgb2gray(np.array(Image.open('./1951usaf_test_target.jpg')))
-#img = np.sqrt(img)
-img = (img-np.min(img))/(np.max(img)-np.min(img))
-imsave('./gray.bmp',np.squeeze(img))
+img = np.array(Image.open('/mnt/data/home/antonn/SEMINAR/DigitalHolography/input/input.png'))
+img = rgb2gray(img)
+img = (img - np.min(img)) / (np.max(img) - np.min(img))
+img = np.squeeze(img)  # Ensure the image is 2D
+
+if img.ndim != 2:
+    raise ValueError("The image is not 2D after conversion to grayscale.")
+
+imsave('./gray.bmp', img)
 plt.figure(figsize=(20,10))
-plt.imshow(np.squeeze(img), cmap='gray')
+plt.imshow(img, cmap='gray')
 
 '''
 Field mesurement/generate hologram
@@ -114,14 +118,16 @@ g = s/s1
 hologram = np.abs(g)
 
 plt.figure(figsize=(20,10))
-plt.imshow(hologram, cmap='gray')
+#plt.imshow(hologram, cmap='gray')
+plt.savefig('./output/hologram.png')
 
 '''
 Back-propagate
 '''
 bp = np.fft.ifft2(np.fft.fft2(hologram)*np.fft.fftshift(np.conj(phase)))
 plt.figure(figsize=(20,10))
-plt.imshow(np.abs(bp), cmap='gray')
+#plt.imshow(np.abs(bp), cmap='gray')
+plt.savefig('./output/bp.png')
 
 
 
@@ -148,11 +154,12 @@ s1=(S1+1)*np.conj(S1+1);
 g = s/s1
 hologram = np.abs(g)
 plt.figure(figsize=(20,10))
-plt.imshow(hologram, cmap='gray')
+#plt.imshow(hologram, cmap='gray')
+plt.savefig('./output/hologram.png')
 bp = np.fft.ifft2(np.fft.fft2(hologram)*np.fft.fftshift(np.conj(phase)))
 plt.figure(figsize=(20,10))
-plt.imshow(np.abs(bp), cmap='gray')
-
+#plt.imshow(np.abs(bp), cmap='gray')
+plt.savefig('./output/bp.png')
 # 2nd iter
 holo_2 = copy.deepcopy(hologram)
 bp_2 = copy.deepcopy(bp)
@@ -189,11 +196,13 @@ plt.plot(np.unique(bp_2_norm))
 
 plt.figure(figsize=(10,10))
 plt.axis('off')
-plt.imshow(holo_1_norm+holo_2_norm, cmap='gray')
+#plt.imshow(holo_1_norm+holo_2_norm, cmap='gray')
+plt.savefig('./output/holo_sum.png')
 
 plt.figure(figsize=(10,10))
 plt.axis('off')
-plt.imshow(bp_1_norm+bp_2_norm, cmap='gray')
+#plt.imshow(bp_1_norm+bp_2_norm, cmap='gray')
+plt.savefig('./output/bp_sum.png')
 
 
 
@@ -206,7 +215,8 @@ img = (img-np.min(img))/(np.max(img)-np.min(img))
 
 plt.figure(figsize=(10,10))
 plt.axis('off')
-plt.imshow(img, cmap='gray')
+#plt.imshow(img, cmap='gray')
+plt.savefig('./output/img.png')
 
 
 holo_sum = []
@@ -246,7 +256,8 @@ for z in range(0,5001,500):
     
     plt.figure(figsize=(10,10))
     plt.axis('off')
-    plt.imshow(hologram, cmap='gray')
+    #plt.imshow(hologram, cmap='gray')
+    plt.savefig('./output/hologram.png')
     
     '''
     Back-propagate
@@ -254,8 +265,8 @@ for z in range(0,5001,500):
     bp = np.fft.ifft2(np.fft.fft2(hologram)*np.fft.fftshift(np.conj(phase)))
     plt.figure(figsize=(10,10))
     plt.axis('off')
-    plt.imshow(np.abs(bp), cmap='gray')
-    
+    #plt.imshow(np.abs(bp), cmap='gray')
+    plt.savefig('./output/bp.png')
     holo_sum.append(hologram)
     bp_sum.append(bp)
     
@@ -275,7 +286,8 @@ for i in range(len(bp_sum)):
     
 plt.figure(figsize=(10,10))
 plt.axis('off')
-plt.imshow(holo_total, cmap='gray')
+#plt.imshow(holo_total, cmap='gray')
+plt.savefig('./output/holo_total.png')
 
 
 # a = holo_sum[0]+holo_sum[1]+holo_sum[2]+holo_sum[3]+holo_sum[4]
@@ -287,8 +299,8 @@ plt.figure(figsize=(10,10))
 plt.axis('off')
 # plt.imshow(np.real(bp_total), cmap='gray')
 # plt.imshow(np.imag(bp_total), cmap='gray')
-plt.imshow(np.abs(bp_total), cmap='gray')
-
+#plt.imshow(np.abs(bp_total), cmap='gray')
+plt.savefig('./output/bp_total.png')
 
 
 
@@ -306,8 +318,8 @@ plt.axis('off')
 plt.imshow(holo_sum_1+holo_sum_2, cmap='gray')
 plt.figure(figsize=(10,10))
 plt.axis('off')
-plt.imshow(np.abs(bp_sum_1)+np.abs(bp_sum_2), cmap='gray')
-
+#plt.imshow(np.abs(bp_sum_1)+np.abs(bp_sum_2), cmap='gray')
+plt.savefig('./output/bp_sum.png')
 
 a = holo_sum_1
 b = bp_sum_1

@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Dec 15 18:05:04 2021
 
-@author: MaxGr
-"""
 
 import torch  
 import torch.nn as nn
@@ -50,16 +46,16 @@ deltaX, deltaY : sensor size
 # um
 Nx = 1000 # pixels
 Ny = 1000 # pixels
-z = 2400 # um
-wavelength = 0.405 # um
+z = 1650 # mm
+wavelength = 0.52 # um
 deltaX = 2 # um
-deltaY = 2 # um <- to je tudi za naše
+deltaY = 2 # um
 
 '''
 
 '''
 #load image
-img = Image.open('/mnt/data/home/antonn/SEMINAR/DigitalHolography/images/vzorec.tif') # load image
+img = Image.open('/mnt/data/home/antonn/SEMINAR/DigitalHolography/results_old/holo_1650_0.52_2022-03-15 00_36_24.bmp') # load image
 #take just one chanel of tiff
 #print(img.size) 
 #print(type(img))
@@ -513,6 +509,50 @@ amp.save("./output/1_amp.png")
 
 import cv2
 cv2.imwrite("./output/phase.png",plotout_p)
+
+import numpy as np
+import matplotlib.pyplot as plt
+import tifffile as tiff
+import torch
+import cv2
+
+def take_middle(image, size=1000):
+    x, y = image.shape
+    x1 = max(0, x//2 - size//2)
+    x2 = min(x, x//2 + size//2)
+    y1 = max(0, y//2 - size//2)
+    y2 = min(y, y//2 + size//2)
+    return image[x1:x2, y1:y2]
+
+def show_image(image_path):
+    image = tiff.imread(image_path)
+    print('Image shape:', image.shape)
+    print('Image type:', type(image))
+    if 'ImageDescription' in tiff.TiffFile(image_path).pages[0].tags:
+        print('Image metadata:', tiff.TiffFile(image_path).pages[0].tags['ImageDescription'].value)
+        
+    name = image_path.split('/')[-1]
+    plt.imshow(image, cmap='gray')
+    plt.savefig('images/'+name+'.png')
+    return image
+
+# Example usage
+image_path = 'path/to/your/image.tif'
+image = show_image(image_path)
+masked_image = take_middle(image, size=min(image.shape))
+plt.imshow(masked_image, cmap='gray')
+plt.savefig('images/masked_image.png')
+
+# Save tensor as image
+plotout = torch.tensor(masked_image)
+plotout = (plotout - torch.min(plotout)) / (torch.max(plotout) - torch.min(plotout))
+amp = tensor2pil(plotout)
+amp.save("./output/1_amp.png")
+
+plotout_p = (torch.atan(outtemp[1, :, :] / outtemp[0, :, :])).numpy()
+plotout_p = Phase_unwrapping(plotout_p)
+plotout_p = (plotout_p - np.min(plotout_p)) / (np.max(plotout_p) - np.min(plotout_p))
+cv2.imwrite("./output/phase.png", plotout_p)
 
 
 

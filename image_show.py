@@ -21,6 +21,10 @@ def show_image(image_path):
 # teke midle 1000 * 1000 pixels
 def take_midle(image_path, size=1000):
     image = tiff.imread(image_path)
+    if len(image.shape) == 3:
+        image = image[:, :, 0]
+        # flop image
+        image = np.flip(image, 1)
     x, y = image.shape
     x1 = x//2 - size//2
     x2 = x//2 + size//2
@@ -54,7 +58,7 @@ def pari(path):
     plt.imsave('images/imageb.png', imageb, cmap='gray')
 
 def posamezna(path):
-    vzorec = take_midle(path, 250)
+    vzorec = take_midle(path, 500)
     #print(vzorec)
     vzorec = vzorec.astype(np.uint16)
     #save as tif
@@ -65,7 +69,7 @@ def posamezna(path):
     
 
 if __name__ == '__main__':
-    path = '/mnt/data/datasets/polen/holografus_improve/Meritve_RED/HOLO/dataset_1/holo_pelod_testni_vzorci_001.tiff'
+    path = '/mnt/data/datasets/polen/raw/holograms/training/holo_pelod_training_vzorci_T1_2.tiff'
     posamezna(path)
     
     
