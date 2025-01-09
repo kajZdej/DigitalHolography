@@ -43,12 +43,17 @@ image_size = 1000
 Nx = image_size
 Ny = image_size
 # z = z
-wavelength = 0.520
-deltaX = 2
-deltaY = 2
+wavelength = 0.785
+deltaX = 1
+deltaY = 1
 
 device = torch.device("cuda")
 
+def crop_center(img,cropx,cropy):
+    y,x = img.shape
+    startx = x//2-(cropx//2)
+    starty = y//2-(cropy//2)    
+    return img[starty:starty+cropy,startx:startx+cropx]
 
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
@@ -57,6 +62,11 @@ def image_norm(image_path, image_size):
     # image_path = './samples/TS-20220224113123034.tif'
     image = cv2.imread(image_path)
     image = rgb2gray(image)
+    image = np.sqrt(image)
+    
+    #crop center of the image in size 1000x1000
+    image = crop_center(image, 500,500)
+    
     h,w = image.shape
     min_len = h if h<=w else w 
     image_crop = image[(h//2-min_len//2):(h//2+min_len//2),
@@ -467,20 +477,23 @@ def DIH_v32(image_path, z, mylamda, epoch):
     '''
     Holo
     '''
-    hologram = image_norm(image_path, 1000)
+    hologram = image_norm(image_path, image_size)
     cv2.imwrite('./results/holo.bmp',hologram)
 
     hologram = (hologram-np.min(hologram))/(np.max(hologram)-np.min(hologram))
     
     plt.figure(figsize=(20,10))
     plt.imshow(np.squeeze(hologram), cmap='gray')
+    #plt.savefig('./output/holo.png')
+    plt.close()
     
     
     
     bp = np.fft.ifft2(np.fft.fft2(hologram)*np.fft.fftshift(np.conj(phase)))
     plt.figure(figsize=(20,10))
     plt.imshow(np.abs(bp), cmap='gray')
-    
+    #plt.savefig('./output/bp.png')
+    plt.close()
     
     device = torch.device("cuda")
     
@@ -632,14 +645,18 @@ def DIH_v32(image_path, z, mylamda, epoch):
             plt.imshow(tensor2pil(plotout), cmap='gray')
             plt.axis('off')
             plt.title('i: '+str(i),fontsize=20)
+            plt.savefig('./output/amp_'+str(i+1)+'.png')
             #plt.show()
+            plt.close()
             
             
             
             plt.figure(figsize=(10,10))
             plt.imshow((plotout_p), cmap='gray')
             plt.axis('off')
+            plt.title('i: '+str(i+1),fontsize=20)
             #plt.show()
+            plt.close()
             
     # #         print(plotout_p[100,:10])
             # #print(np.min(plotout_p))
@@ -673,6 +690,7 @@ def DIH_v32(image_path, z, mylamda, epoch):
             
             
             mask_new = torch.tensor(mask_new).to(device)
+            #mask_new = torch.tensor(mask_new).clone().detach().to(device)
             
             mask_new_tensor = torch.zeros((out.size())).to(device)
             
@@ -707,6 +725,7 @@ def DIH_v32(image_path, z, mylamda, epoch):
             plt.figure(figsize=(10,10))
             plt.imshow(mask.cpu().data)
             plt.axis('off')
+            plt.close()
     
             
             
@@ -716,6 +735,10 @@ def DIH_v32(image_path, z, mylamda, epoch):
     # max_index = 9
     
     index = max_index
+    hologram = np.nan_to_num(hologram, nan=0)
+    hologram = (hologram*255).astype(np.uint8)
+    Temp_phase = np.array(Temp_phase)
+    
     
     img_save = np.array((Temp_amp[index]))/255.
     imsave('./rec_gan_'      +str(z)+'_'+str(wavelength)+'_'+str(period_train)+'_'+str(mylamda)+'_'+format_time+'.bmp',np.uint8(np.squeeze(img_save)*255))
@@ -762,19 +785,20 @@ def DIH_v32(image_path, z, mylamda, epoch):
     
     
 if __name__ == '__main__':
-        
-    DIH_v32('./samples/TS-20220314115708421.tif', z=1700, mylamda=0, epoch=5000)    
-    DIH_v32('./samples/TS-20220314115727220.tif', z=1600, mylamda=0, epoch=5000)    
+    
+    DIH_v32('/mnt/data/datasets/polen/raw/holograms/training/holo_pelod_training_vzorci_T1_2.tiff', z=1273.95, mylamda=0, epoch=5000)
+    #DIH_v32('./samples/TS-20220314115708421.tif', z=1700, mylamda=0, epoch=5000)    
+    #DIH_v32('./samples/TS-20220314115727220.tif', z=1600, mylamda=0, epoch=5000)    
 
     
-    DIH_v32('./samples/TS-20220314120059941.tif', z=1700, mylamda=0, epoch=5000)    
+    #DIH_v32('./samples/TS-20220314120059941.tif', z=1700, mylamda=0, epoch=5000)    
     
-    DIH_v32('./samples/TS-20220314120333012.tif', z=1700, mylamda=0, epoch=5000)    
+    #DIH_v32('./samples/TS-20220314120333012.tif', z=1700, mylamda=0, epoch=5000)    
     
-    DIH_v32('./samples/TS-20220314120954414.tif', z=1650, mylamda=0, epoch=5000)    
-    DIH_v32('./samples/TS-20220314122041352.tif', z=1650, mylamda=0, epoch=5000)    
-    DIH_v32('./samples/TS-20220314121324493.tif', z=1650, mylamda=0, epoch=5000)    
-    DIH_v32('./samples/TS-20220314121530284.tif', z=1650, mylamda=0, epoch=5000)    
+    #DIH_v32('./samples/TS-20220314120954414.tif', z=1650, mylamda=0, epoch=5000)    
+    #DIH_v32('./samples/TS-20220314122041352.tif', z=1650, mylamda=0, epoch=5000)    
+    #DIH_v32('./samples/TS-20220314121324493.tif', z=1650, mylamda=0, epoch=5000)    
+    #DIH_v32('./samples/TS-20220314121530284.tif', z=1650, mylamda=0, epoch=5000)    
     
     
     

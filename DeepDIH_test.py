@@ -38,7 +38,7 @@ print(torch.cuda.get_arch_list())
 
 
 
-img_size = 1000
+img_size = 200
 
 '''
 Spherical light function
@@ -48,10 +48,10 @@ wavelength: wavelength of light
 deltaX, deltaY : sensor size
 '''
 # um
-Nx = 1000 # pixels
-Ny = 1000 # pixels
-z = 2400 # um
-wavelength = 0.405 # um
+Nx = 200 # pixels
+Ny = 200 # pixels
+z = 1273.95 # um
+wavelength = 0.785 # um
 deltaX = 2 # um
 deltaY = 2 # um <- to je tudi za naše
 
@@ -71,9 +71,13 @@ img.save('./input/input.png') # save input image as png
 
 h,w = img.size # get image size
 
-# resize image to 1000x1000
-if h != 1000 or w != 1000: 
-    img = img.resize((1000,1000), PIL.Image.LANCZOS)
+# resize image to img_sizeximg_size
+if h != img_size or w != img_size: 
+    img = img.resize((img_size,img_size), PIL.Image.LANCZOS)
+    Nx = img_size
+    Ny = img_size
+    deltaX = deltaX * Nx / img_size
+    deltaY = deltaY * Ny / img_size
 
 #img.show()
 # img.save('./input/input.png') # save input image as png
@@ -113,11 +117,11 @@ def ifft2dc(x):
 
 def Phase_unwrapping(in_):
     # in_ is the input image
-    f = np.zeros((1000,1000)) # create an array of zeros
-    for ii in range(1000): 
-        for jj in range(1000): 
-            x = ii - 1000/2 
-            y = jj - 1000/2
+    f = np.zeros((img_size,img_size)) # create an array of zeros
+    for ii in range(img_size): 
+        for jj in range(img_size): 
+            x = ii - img_size/2 
+            y = jj - img_size/2
             f[ii,jj] = x**2 + y**2 # make cilindrical mask (center of the image is 0 and the values increase as we move away from the center)
     # make the output image real
     a = ifft2dc(fft2dc(np.cos(in_)*ifft2dc(fft2dc(np.sin(in_))*f))/(f+0.000001)) 
@@ -167,7 +171,7 @@ bp = np.squeeze(np.abs(eta)) # calculate the back-propogation
 bp = bp/(np.max(bp)-np.min(bp)) *255 # normalize the image
 
 
-cv2.imwrite('./bp.png',bp) # save the back-propogation as a png file
+cv2.imwrite('./output/bp.png',bp) # save the back-propogation as a png file
 
 # a = np.fft.fftshift(np.conj(phase))
 # b = np.conj(phase)
@@ -494,10 +498,6 @@ plt.figure(figsize=(30,30))
 plt.imshow((plotout_p), cmap='gray')
 #plt.savefig('./output/{}_phase.png'.format(i+1))
 #plt.show()        
-
-
-
-
 
 #cv2.imwrite("./penalty_1/1_amp.png",tensor2pil(plotout))
 
